@@ -5,7 +5,11 @@
 //  Created by Győrvári Gábor on 2024. 10. 21..
 //
 
-import Foundation
+import AppKit
 
-print("Hello, World!")
+let app = NSApplication.shared
 
+let delegate = AppDelegate()
+app.delegate = delegate
+app.setActivationPolicy(.accessory)
+app.run()
