@@ -7,7 +7,6 @@
 import AppKit
 
 class PluginManager {
-    
     func refreshAll() -> [Plugin] {
         let fileUrl = URL(string: "/Users/scr34m/Library/Application Support/xbar/plugins/")
         return search(pathURL: fileUrl!)
@@ -42,7 +41,7 @@ class PluginManager {
         let url = URL(fileURLWithPath: pathURL.absoluteString, relativeTo: pathURL)
         let name = url.lastPathComponent;
         
-        var components = name.components(separatedBy: ".")
+        let components = name.components(separatedBy: ".")
         guard components.count == 3 else { return nil }
         
         if components[2] != "sh" {

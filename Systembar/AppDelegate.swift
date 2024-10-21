@@ -7,47 +7,88 @@
 
 import AppKit
 
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, PluginDelegate {
+
+    struct PluginMenu {
+        var plugin: Plugin
+        var statusBar: NSStatusBar
+        var statusBarItem: NSStatusItem
+    }
     
     var statusBar: NSStatusBar!
     var statusBarItem: NSStatusItem!
-    var isMuted: Bool = false
+
+    var plugins: [Plugin]?
+    var pluginsMenu = [PluginMenu]()
     
     override init() {
         super.init()
-        let manager = PluginManager();
-        let plugins = manager.refreshAll();
-        print(plugins)
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        statusBar = NSStatusBar()
-        statusBarItem = statusBar.statusItem(withLength: NSStatusItem.variableLength)
+        let manager = PluginManager();
         
-        if let button = statusBarItem.button {
-            button.image = NSImage(systemSymbolName: isMuted ? "mic.slash" : "mic", accessibilityDescription: nil)
+        plugins = manager.refreshAll();
+        for plugin in plugins! {
+            plugin.delegate = self
+            plugin.refresh();
         }
-        
-        if let button = statusBarItem.button {
-            let groupMenuItem = NSMenuItem()
-            groupMenuItem.title = "Toggle mute!"
-            groupMenuItem.target = self
+    }
+
+    @objc func refresh(sender: NSMenuItem) {
+    }
+
+    @objc func refreshAll(sender: NSMenuItem) {
+    }
+
+    @objc func quit(sender: NSMenuItem) {
+        NSApplication.shared.terminate(nil)
+    }
+    
+    func pluginDidRefresh(plugin: Plugin) {
+        print("Refresh \"\(plugin.name)\" \(plugin.title)")
+
+        for (index, p) in plugins!.enumerated() {
+            if p.name != plugin.name {
+                continue;
+            }
             
-            groupMenuItem.action = #selector(mutePressed)
-            
-            let mainMenu = NSMenu()
-            mainMenu.addItem(groupMenuItem)
-            
-            statusBarItem.menu = mainMenu
+            if !pluginsMenu.indices.contains(index) {
+                pluginsMenu.insert(buildMenu(index: index, plugin: plugin), at: index)
+            } else if let button = pluginsMenu[index].statusBarItem.button {
+                button.title = plugin.title
+            }
         }
     }
     
-    @objc func mutePressed() {
+    func buildMenu(index: Int, plugin: Plugin) -> PluginMenu {
+        let statusBar = NSStatusBar()
+        let statusBarItem = statusBar.statusItem(withLength: NSStatusItem.variableLength)
+        
         if let button = statusBarItem.button {
-            // 5
-            isMuted.toggle()
-            button.image = NSImage(systemSymbolName: isMuted ? "mic.slash" : "mic", accessibilityDescription: nil)
+            button.title = plugin.title
+
+            let menu = NSMenu()
+            
+            var menuItem = NSMenuItem(title: "Refresh", action: #selector(refresh), keyEquivalent: "")
+            menuItem.target = self
+            menuItem.tag = index
+            menu.addItem(menuItem)
+            
+            menuItem = NSMenuItem(title: "Refresh all", action: #selector(refreshAll), keyEquivalent: "")
+            menuItem.target = self
+            menuItem.tag = index
+            menu.addItem(menuItem)
+            
+            menu.addItem(.separator())
+            
+            menuItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "")
+            menuItem.target = self
+            menu.addItem(menuItem)
+            
+            statusBarItem.menu = menu
         }
+        return PluginMenu(plugin: plugin, statusBar: statusBar, statusBarItem: statusBarItem);
     }
     
 }
