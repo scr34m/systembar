@@ -11,11 +11,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, PluginDelegate {
 
     struct PluginMenu {
         var plugin: Plugin
-        var statusBar: NSStatusBar
         var statusBarItem: NSStatusItem
     }
     
-    var statusBar: NSStatusBar!
     var statusBarItem: NSStatusItem!
 
     var plugins: [Plugin]?
@@ -61,12 +59,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, PluginDelegate {
         }
     }
     
+    @objc func menu(sender: NSMenuItem) {
+        print(1)
+    }
+
+    
     func buildMenu(index: Int, plugin: Plugin) -> PluginMenu {
-        let statusBar = NSStatusBar()
-        let statusBarItem = statusBar.statusItem(withLength: NSStatusItem.variableLength)
-        
+        let statusBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+
         if let button = statusBarItem.button {
             button.title = plugin.title
+            button.target = self
+            button.action = #selector(menu)
 
             let menu = NSMenu()
             
@@ -88,7 +92,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, PluginDelegate {
             
             statusBarItem.menu = menu
         }
-        return PluginMenu(plugin: plugin, statusBar: statusBar, statusBarItem: statusBarItem);
+        return PluginMenu(plugin: plugin, statusBarItem: statusBarItem);
     }
     
 }

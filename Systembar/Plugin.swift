@@ -24,9 +24,8 @@ class Plugin {
     var refreshUnit: RefreshUnit
     var refreshValue: Int
     
-    var raw : [String]?
     var title : String
-    var submenus : [String]?
+    var items : [Item]!
     
     var delegate: PluginDelegate?
     var disp : DispatchSourceTimer!
@@ -53,26 +52,10 @@ class Plugin {
         
         let (raw, _, _) = run();
 
-        // read title
-        title = ""
-        var sep = 0
-        for i in 0...(raw.count - 1) {
-            if raw[i] == "---" {
-                sep = i
-                break
-            }
-            title = title + raw[i]
-        }
+        let p = Parser()
+        self.items = p.parseRaw(raw)
+        self.title = self.items[0].text!
 
-        // read title
-        submenus = []
-        for j in sep...(raw.count - 1) {
-            if raw[j] == "---" {
-                break
-            }
-            submenus?.append(raw[j])
-        }
-        
         if let d = delegate {
             d.pluginDidRefresh(plugin: self)
         }
