@@ -34,9 +34,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, PluginDelegate {
     }
 
     @objc func refresh(sender: NSMenuItem) {
+        plugins?[sender.tag].refresh()
     }
 
     @objc func refreshAll(sender: NSMenuItem) {
+        for plugin in plugins! {
+            plugin.refresh();
+        }
     }
 
     @objc func quit(sender: NSMenuItem) {
@@ -59,18 +63,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, PluginDelegate {
         }
     }
     
-    @objc func menu(sender: NSMenuItem) {
-        print(1)
-    }
-
     
     func buildMenu(index: Int, plugin: Plugin) -> PluginMenu {
         let statusBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         if let button = statusBarItem.button {
             button.title = plugin.title
-            button.target = self
-            button.action = #selector(menu)
 
             let menu = NSMenu()
             
