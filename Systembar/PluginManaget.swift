@@ -8,8 +8,9 @@ import AppKit
 
 class PluginManager {
     func refreshAll() -> [Plugin] {
-        let fileUrl = URL(string: "/Users/scr34m/Library/Application Support/xbar/plugins/")
-        return search(pathURL: fileUrl!)
+        let documentsDirectory = FileManager.default.urls(for:.applicationSupportDirectory, in: .userDomainMask)[0]
+        let destinationPath = documentsDirectory.appendingPathComponent("/xbar/plugins/")
+        return search(pathURL: destinationPath)
     }
     
     func search(pathURL: URL) -> [Plugin] {
