@@ -62,8 +62,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, PluginDelegate {
             }
         }
     }
-    
-    
+       
+    @objc func pluginMenuClick(sender: NSMenuItem) {
+        let item_index = sender.tag / 100
+        let index = sender.tag - (item_index * 100)
+        
+        let item = plugins![index].items[item_index];
+        
+        if let href = item.params?.Href {
+            if let url = URL(string: href) {
+                NSWorkspace.shared.open(url)
+            }
+        }
+    }
+
     func buildMenu(index: Int, plugin: Plugin) -> PluginMenu {
         let statusBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
@@ -71,6 +83,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, PluginDelegate {
             button.title = plugin.title
 
             let menu = NSMenu()
+                       
+            for (item_index, item) in plugin.items.enumerated() {
+                if item_index == 0 {
+                    continue;
+                }
+                
+                let menuItem = NSMenuItem(title: item.text!, action: #selector(pluginMenuClick), keyEquivalent: "")
+                if let color = item.params?.Color {
+                    menuItem.attributedTitle = NSAttributedString(string: item.text!, attributes: [NSAttributedString.Key.foregroundColor: color])
+                }
+                menuItem.target = self
+                menuItem.tag = (item_index * 100) + index
+                menu.addItem(menuItem)
+            }
+            
+            if menu.numberOfItems > 0 {
+                menu.addItem(.separator())
+            }
             
             var menuItem = NSMenuItem(title: "Refresh", action: #selector(refresh), keyEquivalent: "")
             menuItem.target = self

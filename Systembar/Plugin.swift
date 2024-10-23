@@ -54,7 +54,9 @@ class Plugin {
 
         let p = Parser()
         self.items = p.parseRaw(raw)
-        self.title = self.items[0].text!
+        if self.items.count > 0 {
+            self.title = self.items[0].text!
+        }
 
         if let d = delegate {
             d.pluginDidRefresh(plugin: self)
