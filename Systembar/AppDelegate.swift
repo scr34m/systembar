@@ -14,8 +14,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, PluginDelegate {
         var statusBarItem: NSStatusItem
     }
     
-    var statusBarItem: NSStatusItem!
-
     var plugins: [Plugin]?
     var pluginsMenu = [PluginMenu]()
     
@@ -25,7 +23,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, PluginDelegate {
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         let manager = PluginManager();
-        
+
         plugins = manager.refreshAll();
         for plugin in plugins! {
             plugin.delegate = self
@@ -49,21 +47,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, PluginDelegate {
     
     func pluginDidRefresh(plugin: Plugin) {
         print("Refresh \"\(plugin.name)\" \(plugin.title)")
-
         for (index, p) in plugins!.enumerated() {
-            if p.name != plugin.name {
-                continue;
-            }
-            
-            let m = buildMenu(index: index, plugin: plugin)
-            if !pluginsMenu.indices.contains(index) {
-                pluginsMenu.insert(m, at: index)
-            } else {
-                pluginsMenu[index] = m
-            }
-            
-            if let button = pluginsMenu[index].statusBarItem.button {
-                button.title = plugin.title
+            if p.name == plugin.name {
+                buildMenu(index: index, plugin: plugin)
+                break;
             }
         }
     }
@@ -94,8 +81,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, PluginDelegate {
 
     }
 
-    func buildMenu(index: Int, plugin: Plugin) -> PluginMenu {
-        let statusBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    func buildMenu(index: Int, plugin: Plugin) {
+        
+        // init menu
+        if !pluginsMenu.indices.contains(index) {
+            let statusBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+            pluginsMenu.insert(PluginMenu(plugin: plugin, statusBarItem: statusBarItem), at: index)
+        }
+        
+        let statusBarItem = pluginsMenu[index].statusBarItem
 
         if let button = statusBarItem.button {
             button.title = plugin.title
@@ -138,7 +132,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, PluginDelegate {
             
             statusBarItem.menu = menu
         }
-        return PluginMenu(plugin: plugin, statusBarItem: statusBarItem);
     }
     
 }
