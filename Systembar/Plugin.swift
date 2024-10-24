@@ -50,14 +50,14 @@ class Plugin {
             return
         }
         
-        let (raw, _, _) = run();
-
+        let (output, _) = run(path: file.path, args: []);
+        
         let p = Parser()
-        self.items = p.parseRaw(raw)
+        self.items = p.parseRaw(output)
         if self.items.count > 0 {
             self.title = self.items[0].text!
         }
-
+        
         if let d = delegate {
             d.pluginDidRefresh(plugin: self)
         }
@@ -74,38 +74,63 @@ class Plugin {
         disp.resume()
     }
     
-    func run() -> (output: [String], error: [String], exitCode: Int32) {
+    func run(path: String, args: [String]) -> (output: [String], error: [String]) {
         var output : [String] = []
         var error : [String] = []
         
-        let task = Process()
-        task.launchPath = "/usr/bin/env"
-        task.arguments = [file.path]
+        let process = Process()
+        process.launchPath = path
+        process.arguments = args
         
-        let outpipe = Pipe()
-        task.standardOutput = outpipe
+        let group = DispatchGroup()
         
-        let errpipe = Pipe()
-        task.standardError = errpipe
-        
-        task.launch()
-
-        let outdata = outpipe.fileHandleForReading.readDataToEndOfFile()
-        if var string = String(data: outdata, encoding: .utf8) {
-            string = string.trimmingCharacters(in: .newlines)
-            output = string.components(separatedBy: "\n")
+        var tempStdOutStorage = Data()
+        let stdOutPipe = Pipe()
+        process.standardOutput = stdOutPipe
+        group.enter()
+        stdOutPipe.fileHandleForReading.readabilityHandler = { stdOutFileHandle in
+            let stdOutPartialData = stdOutFileHandle.availableData
+            if stdOutPartialData.isEmpty { // EOF on stdin
+                stdOutPipe.fileHandleForReading.readabilityHandler = nil
+                group.leave()
+            } else {
+                tempStdOutStorage.append(stdOutPartialData)
+            }
         }
         
-        let errdata = errpipe.fileHandleForReading.readDataToEndOfFile()
-        if var string = String(data: errdata, encoding: .utf8) {
-            string = string.trimmingCharacters(in: .newlines)
-            error = string.components(separatedBy: "\n")
-
+        var tempStdErrStorage = Data()
+        let stdErrPipe = Pipe()
+        process.standardError = stdErrPipe
+        group.enter()
+        stdErrPipe.fileHandleForReading.readabilityHandler = { stdErrFileHandle in
+            let stdErrPartialData = stdErrFileHandle.availableData
+            if stdErrPartialData.isEmpty { // EOF on stderr
+                stdErrPipe.fileHandleForReading.readabilityHandler = nil
+                group.leave()
+            } else {
+                tempStdErrStorage.append(stdErrPartialData)
+            }
         }
-
-        task.waitUntilExit()
-        let status = task.terminationStatus
         
-        return (output, error, status)
+        process.standardOutput = stdOutPipe
+        process.standardError = stdErrPipe
+        
+        process.launch()
+        
+        process.terminationHandler = { process in
+            group.wait()
+            if var string = String(data: tempStdOutStorage, encoding: .utf8) {
+                string = string.trimmingCharacters(in: .newlines)
+                output = string.components(separatedBy: "\n")
+            }
+            if var string = String(data: tempStdErrStorage, encoding: .utf8) {
+                string = string.trimmingCharacters(in: .newlines)
+                error = string.components(separatedBy: "\n")
+            }
+        }
+        process.waitUntilExit()
+        
+        return (output, error)
     }
+    
 }

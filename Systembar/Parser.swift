@@ -17,7 +17,9 @@ struct Item {
 struct ItemParams {
     var Color: NSColor!
     var Shell: String!
+    var ShellParams: [String] = []
     var Href: String!
+    var Refresh: Bool!
 }
 
 class Parser {
@@ -164,7 +166,7 @@ class Parser {
         "seashell":             "#fff5ee",
     ]
     
-    func setValueByKey(params: inout ItemParams, key: String, value: String) -> Bool {
+    func setValueByKey(params: inout ItemParams, key: String, value: String) {
         switch key {
         case "color":
             if value.hasPrefix("#") && value.count == 7 {
@@ -172,16 +174,32 @@ class Parser {
             } else if let c = colors[value] {
                 params.Color = NSColor.fromHex(hexColor: c)
             }
-            return false
-        case "shell":
+            break
+        case "bash", "shell":
             params.Shell = value
-            return false
+            break
         case "href":
             params.Href = value
-            return false
+            break
+        case "refresh":
+            params.Refresh = value == "true"
+            break
         default:
-            print("unknown parameter: \(key)")
-            return true
+            if key.hasPrefix("param") {
+                let idx = key[key.index(key.startIndex, offsetBy: 5)...]
+                if let index = Int(idx) {
+                    while params.ShellParams.count != index {
+                        params.ShellParams.append("")
+                    }
+                    params.ShellParams.insert(value, at: index - 1)
+                    break
+                } else {
+                    print("bad parameter: \(key)")
+                }
+            } else {
+                print("unknown parameter: \(key)")
+            }
+            break
         }
     }
     
@@ -212,11 +230,13 @@ class Parser {
                 }
             }
             let offset = s.index(index, offsetBy: offsetShift)
-            let key = s[...s.index(index, offsetBy: -1)]
-            // if key[0] == '|' {
-            //     key = key[1:]
-            //     key = strings.TrimSpace(key)
-            // }
+            let keySub = s[...s.index(index, offsetBy: -1)]
+            var key: String
+            if keySub.first == "|" {
+                key = String(keySub.dropFirst()).trimmingCharacters(in: .whitespacesAndNewlines)
+            } else {
+                key = String(keySub)
+            }
             let valuePart = s[offset...]
             var end = valuePart.firstIndex(of: endStr)
             if end == nil {
@@ -226,9 +246,7 @@ class Parser {
                 }
             }
             let value = s[offset...(s.index(end!, offsetBy: -1))]
-            if setValueByKey(params: &params, key: String(key), value: String(value)) {
-                return true
-            }
+            setValueByKey(params: &params, key: key, value: String(value))
             if s.distance(from: s.startIndex, to: end!) + 1 > s.count {
                 return false
             }

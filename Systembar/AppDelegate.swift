@@ -55,9 +55,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, PluginDelegate {
                 continue;
             }
             
+            let m = buildMenu(index: index, plugin: plugin)
             if !pluginsMenu.indices.contains(index) {
-                pluginsMenu.insert(buildMenu(index: index, plugin: plugin), at: index)
-            } else if let button = pluginsMenu[index].statusBarItem.button {
+                pluginsMenu.insert(m, at: index)
+            } else {
+                pluginsMenu[index] = m
+            }
+            
+            if let button = pluginsMenu[index].statusBarItem.button {
                 button.title = plugin.title
             }
         }
@@ -67,13 +72,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, PluginDelegate {
         let item_index = sender.tag / 100
         let index = sender.tag - (item_index * 100)
         
-        let item = plugins![index].items[item_index];
+        let plugin = plugins![index];
+        let item = plugin.items[item_index];
         
         if let href = item.params?.Href {
             if let url = URL(string: href) {
                 NSWorkspace.shared.open(url)
             }
         }
+        if let shell = item.params?.Shell {
+            DispatchQueue.main.async {
+                (_, _) = plugin.run(path: shell, args: item.params!.ShellParams)
+
+                if (item.params?.Refresh) != nil {
+                    plugin.refresh()
+                }
+            }
+        } else if (item.params?.Refresh) != nil {
+            plugins![index].refresh()
+        }
+
     }
 
     func buildMenu(index: Int, plugin: Plugin) -> PluginMenu {
